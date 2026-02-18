@@ -22,6 +22,8 @@ let fallbackPngBuffer: Buffer;
 let fallbackPngFile = "";
 let fallbackPngCap = 0;
 let stateDirSnapshot: ReturnType<typeof captureEnv>;
+const resolvePinnedHostnameWithPolicy = ssrf.resolvePinnedHostnameWithPolicy;
+const lookupMock = vi.fn(async () => [{ address: "93.184.216.34", family: 4 as const }]);
 
 async function writeTempFile(buffer: Buffer, ext: string): Promise<string> {
   const file = path.join(fixtureRoot, `media-${fixtureFileCount++}${ext}`);
@@ -96,6 +98,7 @@ afterAll(async () => {
 
 afterEach(() => {
   vi.clearAllMocks();
+  lookupMock.mockClear();
 });
 
 describe("web media loading", () => {
@@ -116,15 +119,12 @@ describe("web media loading", () => {
   });
 
   beforeAll(() => {
-    vi.spyOn(ssrf, "resolvePinnedHostname").mockImplementation(async (hostname) => {
-      const normalized = hostname.trim().toLowerCase().replace(/\.$/, "");
-      const addresses = ["93.184.216.34"];
-      return {
-        hostname: normalized,
-        addresses,
-        lookup: ssrf.createPinnedLookup({ hostname: normalized, addresses }),
-      };
-    });
+    vi.spyOn(ssrf, "resolvePinnedHostnameWithPolicy").mockImplementation((hostname, params = {}) =>
+      resolvePinnedHostnameWithPolicy(hostname, {
+        ...params,
+        lookupFn: params.lookupFn ?? lookupMock,
+      }),
+    );
   });
 
   it("strips MEDIA: prefix before reading local file", async () => {

@@ -48,6 +48,7 @@ describe("resolveGatewayRuntimeConfig", () => {
         resolveGatewayRuntimeConfig({
           cfg,
           port: 18789,
+          host: "127.0.0.1",
         }),
       ).rejects.toThrow("gateway auth mode=trusted-proxy makes no sense with bind=loopback");
     });
